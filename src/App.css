@@ -207,6 +207,18 @@ html, body, #root {
   font-weight: 600;
 }
 
+.tab.cf-active {
+  background: var(--blue-dim);
+  color: var(--blue);
+  font-weight: 600;
+}
+
+/* 3-tab layout: smaller text */
+.platform-tabs:has(.tab:nth-child(3)) .tab {
+  font-size: 10.5px;
+  padding: 6px 4px;
+}
+
 .tab-dot {
   width: 5px;
   height: 5px;
@@ -533,3 +545,342 @@ html, body, #root {
 
 /* ─── Spacer ──────────────────────────────────────────────────────────────────  */
 .body-spacer { height: 6px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SETTINGS PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.settings-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  border-radius: var(--r-xl);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  animation: slideIn 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* ── Settings Header ───────────────────────────────────────────────────────── */
+.s-header {
+  display: flex;
+  align-items: center;
+  padding: 13px 14px 9px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.s-back-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: var(--r-xs);
+  font-family: inherit;
+  transition: background 0.14s;
+}
+.s-back-btn:hover { background: var(--accent-dim); }
+
+.s-title {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--t1);
+  flex: 1;
+  text-align: center;
+  margin-left: -40px; /* visually center despite back button */
+}
+
+.s-saved {
+  font-size: 10px;
+  color: var(--green);
+  opacity: 0;
+  transition: opacity 0.2s;
+  font-weight: 600;
+  min-width: 44px;
+  text-align: right;
+}
+.s-saved.visible { opacity: 1; }
+
+/* ── Layout ────────────────────────────────────────────────────────────────── */
+.s-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Sidebar Nav ───────────────────────────────────────────────────────────── */
+.s-nav {
+  width: 90px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 6px;
+  gap: 2px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.s-nav::-webkit-scrollbar { display: none; }
+
+.s-nav-btn {
+  background: none;
+  border: none;
+  color: var(--t2);
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 7px;
+  border-radius: var(--r-xs);
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.14s;
+  letter-spacing: 0.01em;
+}
+.s-nav-btn:hover { background: var(--surface); color: var(--t1); }
+.s-nav-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 650;
+}
+
+/* ── Content Area ──────────────────────────────────────────────────────────── */
+.s-content {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.s-content::-webkit-scrollbar { display: none; }
+
+.s-section-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.s-hint {
+  font-size: 10px;
+  color: var(--t3);
+  line-height: 1.5;
+}
+
+/* ── Group ─────────────────────────────────────────────────────────────────── */
+.s-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.s-group-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--t3);
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Row ───────────────────────────────────────────────────────────────────── */
+.s-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.s-row-label {
+  font-size: 11.5px;
+  color: var(--t1);
+  font-weight: 500;
+}
+
+.s-row-sub {
+  font-size: 10px;
+  color: var(--t3);
+}
+
+/* ── Toggle Switch ─────────────────────────────────────────────────────────── */
+.s-toggle {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  border: none;
+  background: var(--border);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.18s;
+}
+.s-toggle::after {
+  content: "";
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--t2);
+  transition: transform 0.18s, background 0.18s;
+}
+.s-toggle.on { background: var(--accent); }
+.s-toggle.on::after {
+  transform: translateX(14px);
+  background: white;
+}
+
+/* ── Segment Control ───────────────────────────────────────────────────────── */
+.s-segment {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: 2px;
+  gap: 2px;
+}
+
+.s-seg-btn {
+  flex: 1;
+  padding: 3px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--t2);
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.14s;
+}
+.s-seg-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 650;
+}
+
+/* ── Text Input ────────────────────────────────────────────────────────────── */
+.s-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.s-field-label {
+  font-size: 10px;
+  color: var(--t3);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.s-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: 6px 9px;
+  color: var(--t1);
+  font-size: 11.5px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.s-input::placeholder { color: var(--t3); }
+.s-input:focus { border-color: var(--accent-border); }
+
+/* ── Radio ─────────────────────────────────────────────────────────────────── */
+.s-radio {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.s-radio.checked {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.s-radio.checked::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ── Slider ────────────────────────────────────────────────────────────────── */
+.s-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 90px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.s-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+/* ── Mode Cards (window behavior) ──────────────────────────────────────────── */
+.s-mode-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.s-mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: all 0.15s;
+}
+.s-mode-card:hover { background: var(--surface-hover); }
+.s-mode-card.active {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+.s-mode-icon  { font-size: 18px; }
+.s-mode-name  { font-size: 11px; font-weight: 650; color: var(--t1); }
+.s-mode-desc  { font-size: 9px; color: var(--t3); line-height: 1.4; }
+.s-mode-card.active .s-mode-name { color: var(--accent); }
+
+/* ── Danger Button ─────────────────────────────────────────────────────────── */
+.s-danger-btn {
+  width: 100%;
+  padding: 7px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--r-xs);
+  color: #ef4444;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.14s;
+}
+.s-danger-btn:hover { background: rgba(239, 68, 68, 0.18); }
