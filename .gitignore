@@ -1,0 +1,33 @@
+# ── Node ───────────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ── Rust / Cargo ───────────────────────────────────────────────────────────────
+src-tauri/target/
+Cargo.lock       # keep for apps (this is intentional — remove this line to track it)
+
+# ── Tauri ──────────────────────────────────────────────────────────────────────
+src-tauri/gen/
+
+# ── OS ─────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ── IDE ────────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.iml
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── Env / Secrets (never commit these) ─────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+secrets.json
