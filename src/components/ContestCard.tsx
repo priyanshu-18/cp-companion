@@ -34,8 +34,8 @@ export default function ContestCard({ contest }: Props) {
     <div className="contest-row">
       {/* Top row: platform chip + reg status */}
       <div className="contest-top">
-        <span className={`platform-chip ${contest.platform === "leetcode" ? "lc" : "cc"}`}>
-          {contest.platform === "leetcode" ? "LeetCode" : "CodeChef"}
+        <span className={`platform-chip ${{ leetcode: "lc", codechef: "cc", codeforces: "cf" }[contest.platform]}`}>
+          {{ leetcode: "LeetCode", codechef: "CodeChef", codeforces: "Codeforces" }[contest.platform]}
         </span>
         <span className={`reg-chip ${regClass}`}>
           {regLabels[contest.registrationStatus]}

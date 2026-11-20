@@ -433,6 +433,11 @@ html, body, #root {
   background: var(--orange-dim);
   border: 1px solid rgba(251,146,60,0.22);
 }
+.platform-chip.cf {
+  color: var(--blue);
+  background: rgba(96,165,250,0.08);
+  border: 1px solid rgba(96,165,250,0.22);
+}
 
 .reg-chip {
   font-size: 8.5px;
