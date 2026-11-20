@@ -1,8 +1,8 @@
-use tauri::{Manager, Runtime};
+use tauri::Runtime;
 
 // ── macOS: Direct ObjC runtime calls (no external crate needed) ──────────────
-// We call libobjc.dylib directly via C FFI.
-// Works on Apple Silicon (ARM64) and Intel (x86_64).
+// All functions in this module MUST be called from the macOS main thread.
+// NSWindow operations are not thread-safe; AppKit will SIGTRAP on violations.
 #[cfg(target_os = "macos")]
 mod macos_window {
     use std::ffi::c_void;
@@ -13,10 +13,10 @@ mod macos_window {
         fn objc_msgSend();
     }
 
-    /// Set NSWindow.level.
-    /// -1 → below all normal apps (desktop-pinned).
-    ///  0 → normal.
-    ///  3 → kCGFloatingWindowLevel (always-on-top / floating).
+    /// Set NSWindow.level  ── MAIN THREAD ONLY ──
+    /// -1 → kCGDesktopWindowLevel  (desktop-pinned, behind all apps)
+    ///  0 → kCGNormalWindowLevel   (normal application window)
+    ///  3 → kCGFloatingWindowLevel (always-on-top / floating)
     pub unsafe fn set_level(ns_win: *mut c_void, level: i64) {
         unsafe {
             let sel = sel_registerName(b"setLevel:\0".as_ptr());
@@ -26,8 +26,9 @@ mod macos_window {
         }
     }
 
-    /// Set NSWindowCollectionBehavior flags.
-    /// Desktop-pinned: 1 (canJoinAllSpaces) | 16 (stationary) | 64 (ignoresCycle) = 81
+    /// Set NSWindowCollectionBehavior flags  ── MAIN THREAD ONLY ──
+    /// Desktop-pinned: canJoinAllSpaces(1) | stationary(16) | ignoresCycle(64) = 81
+    /// Floating:       0 (default / no special behavior)
     pub unsafe fn set_collection_behavior(ns_win: *mut c_void, behavior: u64) {
         unsafe {
             let sel = sel_registerName(b"setCollectionBehavior:\0".as_ptr());
@@ -81,6 +82,35 @@ mod win32_window {
     }
 }
 
+// ── Helper: run a fallible closure on the macOS main thread ──────────────────
+//
+// `window.run_on_main_thread()` requires a `FnOnce() -> ()` closure — it
+// cannot return a Result.  We smuggle the result out through a one-shot
+// `std::sync::mpsc` channel, then block the calling (tokio worker) thread
+// until the main-thread closure completes.
+//
+// This avoids:
+//  • SIGTRAP "Must only be used from the main thread" (AppKit thread violation)
+//  • Silently swallowing errors that happen inside the closure
+#[cfg(target_os = "macos")]
+fn run_on_main<R, F>(window: &tauri::Window<R>, f: F) -> Result<(), String>
+where
+    R: Runtime,
+    F: FnOnce(&tauri::Window<R>) -> Result<(), String> + Send + 'static,
+{
+    use std::sync::mpsc;
+    let (tx, rx) = mpsc::channel::<Result<(), String>>();
+    let win_clone = window.clone();
+    window
+        .run_on_main_thread(move || {
+            let result = f(&win_clone);
+            let _ = tx.send(result);
+        })
+        .map_err(|e| format!("run_on_main_thread dispatch failed: {e}"))?;
+    rx.recv()
+        .map_err(|e| format!("run_on_main_thread result channel broken: {e}"))?
+}
+
 // ── Tauri Commands ────────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -89,56 +119,73 @@ async fn start_drag<R: Runtime>(window: tauri::Window<R>) {
 }
 
 /// Apply native desktop-pinned mode (behind all app windows).
+///
+/// # Thread safety
+/// All AppKit (NSWindow) calls are dispatched to the macOS main thread via
+/// `run_on_main()`.  Without this, AppKit raises EXC_BREAKPOINT/SIGTRAP with
+/// "Must only be used from the main thread" because Tauri async commands run
+/// on tokio worker threads.
 #[tauri::command]
-async fn pin_to_desktop(app: tauri::AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("Could not get main window")?;
-
-    window.set_always_on_top(false).map_err(|e| e.to_string())?;
-
+async fn pin_to_desktop<R: Runtime>(window: tauri::Window<R>) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        let ns_win = window.ns_window().map_err(|e| e.to_string())?;
-        unsafe {
-            macos_window::set_level(ns_win, -1);
-            // canJoinAllSpaces(1) | stationary(16) | ignoresCycle(64)
-            macos_window::set_collection_behavior(ns_win, 81);
-        }
+        run_on_main(&window, |w| {
+            // set_always_on_top touches AppKit — must also be on main thread.
+            w.set_always_on_top(false).map_err(|e| e.to_string())?;
+
+            let ns_win = w.ns_window().map_err(|e| e.to_string())?;
+            unsafe {
+                // kCGDesktopWindowLevel = -1: behind all app windows
+                macos_window::set_level(ns_win, -1);
+                // canJoinAllSpaces(1) | stationary(16) | ignoresCycle(64) = 81
+                macos_window::set_collection_behavior(ns_win, 81);
+            }
+            eprintln!("[CP Companion] pin_to_desktop: NSWindow level -1 (desktop-pinned)");
+            Ok(())
+        })?;
     }
 
     #[cfg(target_os = "windows")]
     {
+        // Win32 calls are safe from any thread; run directly.
+        window.set_always_on_top(false).map_err(|e| e.to_string())?;
         let hwnd = window.hwnd().map_err(|e| e.to_string())?;
         unsafe { win32_window::pin_to_desktop(hwnd); }
+        eprintln!("[CP Companion] pin_to_desktop: HWND_BOTTOM applied");
     }
 
     Ok(())
 }
 
 /// Restore floating always-on-top mode.
+///
+/// # Thread safety
+/// All AppKit (NSWindow) calls are dispatched to the macOS main thread.
 #[tauri::command]
-async fn set_floating_mode(app: tauri::AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("Could not get main window")?;
-
+async fn set_floating_mode<R: Runtime>(window: tauri::Window<R>) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        let ns_win = window.ns_window().map_err(|e| e.to_string())?;
-        unsafe {
-            macos_window::set_level(ns_win, 3); // kCGFloatingWindowLevel
-            macos_window::set_collection_behavior(ns_win, 0);
-        }
+        run_on_main(&window, |w| {
+            let ns_win = w.ns_window().map_err(|e| e.to_string())?;
+            unsafe {
+                macos_window::set_level(ns_win, 3); // kCGFloatingWindowLevel
+                macos_window::set_collection_behavior(ns_win, 0);
+            }
+            // set_always_on_top touches AppKit — must also be on main thread.
+            w.set_always_on_top(true).map_err(|e| e.to_string())?;
+            eprintln!("[CP Companion] set_floating_mode: NSWindow level 3 (floating)");
+            Ok(())
+        })?;
     }
 
     #[cfg(target_os = "windows")]
     {
         let hwnd = window.hwnd().map_err(|e| e.to_string())?;
         unsafe { win32_window::set_floating(hwnd); }
+        window.set_always_on_top(true).map_err(|e| e.to_string())?;
+        eprintln!("[CP Companion] set_floating_mode: HWND_TOPMOST applied");
     }
 
-    window.set_always_on_top(true).map_err(|e| e.to_string())?;
     Ok(())
 }
 
