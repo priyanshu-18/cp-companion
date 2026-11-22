@@ -132,8 +132,9 @@ export async function fetchCodeforcesStats(handle: string): Promise<PlatformStat
     currentStreak:    null,   // CF public API does not expose streak
     longestStreak:    null,
     totalSubmissions: submissions.length > 0 ? submissions.length : null,
-    rating:           user.rating          ?? null,
-    ranking:          null,                 // CF rank is a string (e.g. "expert")
+    rating:           user.rating    ?? null,
+    maxRating:        user.maxRating ?? null,
+    ranking:          null,           // CF rank is a label string (e.g. "expert"), not a number
     heatmapData,
     lastSynced:       new Date().toISOString(),
     isLoading:        false,

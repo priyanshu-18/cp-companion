@@ -25,7 +25,8 @@ export interface PlatformStats {
   longestStreak:     number | null;
   totalSubmissions:  number | null;
   ranking?:          number | null;
-  rating?:           number | null; // Codeforces / CodeChef / LeetCode contest rating
+  rating?:           number | null;    // Current rating (CF/CC) or contest rating (LC)
+  maxRating?:        number | null;    // All-time peak rating (CF/CC); null for LC
   /** Map of "YYYY-MM-DD" → submission count. Empty when unavailable. */
   heatmapData: Record<string, number>;
   lastSynced: string | null;   // ISO timestamp; null = never synced
@@ -44,6 +45,7 @@ export function emptyStats(platform: Platform): PlatformStats {
     totalSubmissions: null,
     ranking:          null,
     rating:           null,
+    maxRating:        null,
     heatmapData:      {},
     lastSynced:       null,
     isLoading:        false,
