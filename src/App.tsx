@@ -41,6 +41,15 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Auto-refresh on first mount if usernames are configured ──────────────
+  useEffect(() => {
+    const { leetcodeUsername, codechefUsername, codeforcesHandle } = settings;
+    if (leetcodeUsername || codechefUsername || codeforcesHandle) {
+      triggerRefresh().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Apply opacity setting ─────────────────────────────────────────────────
   useEffect(() => {
     document.documentElement.style.setProperty(
@@ -104,6 +113,14 @@ function App() {
     v == null ? <span style={{ color: "var(--t3)", fontSize: "12px" }}>N/A</span>
               : <>{v}{suffix}</>;
 
+  // Whether the active platform has no username configured
+  const usernameMap: Record<typeof settings.activePlatform, string> = {
+    leetcode:   settings.leetcodeUsername,
+    codechef:   settings.codechefUsername,
+    codeforces: settings.codeforcesHandle,
+  };
+  const noUsername = !usernameMap[settings.activePlatform];
+
   return (
     <div className="widget">
 
@@ -150,41 +167,56 @@ function App() {
         <div className="section">
           <div className="section-head">
             <span className="section-label">Statistics</span>
-            {stats.isLoading
-              ? <span className="mock-pill" style={{ color: "var(--blue)" }}>⟳ Loading</span>
-              : <span className="mock-pill">⚠ Mock</span>
-            }
+            {stats.isLoading && (
+              <span className="mock-pill" style={{ color: "var(--blue)" }}>⟳ Syncing</span>
+            )}
+            {!stats.isLoading && stats.lastSynced && (
+              <span className="mock-pill" style={{ color: "var(--green)", opacity: 0.8 }}>● Live</span>
+            )}
+            {!stats.isLoading && !stats.lastSynced && !noUsername && (
+              <span className="mock-pill">Not synced</span>
+            )}
           </div>
-          <div className="stats-grid">
-            <div className="stat-tile">
-              <div className="stat-num purple">{statVal(stats.totalSolved)}</div>
-              <div className="stat-lbl">Problems Solved</div>
+
+          {noUsername ? (
+            <div style={{ padding: "16px 0", textAlign: "center", color: "var(--t3)", fontSize: 11 }}>
+              Enter your {PLATFORM_LABELS[settings.activePlatform]} username<br />
+              in <strong style={{ color: "var(--t2)" }}>Settings → Accounts</strong>
             </div>
-            <div className="stat-tile">
-              <div className="stat-num green">{statVal(stats.currentStreak, "d")}</div>
-              <div className="stat-lbl">Current Streak</div>
-            </div>
-            <div className="stat-tile">
-              <div className="stat-num blue">{statVal(stats.longestStreak, "d")}</div>
-              <div className="stat-lbl">Longest Streak</div>
-            </div>
-            <div className="stat-tile">
-              <div className="stat-num orange">
-                {settings.activePlatform === "codeforces" || settings.activePlatform === "codechef"
-                  ? statVal(stats.rating)
-                  : statVal(stats.totalSubmissions)}
+          ) : (
+            <>
+              <div className="stats-grid">
+                <div className="stat-tile">
+                  <div className="stat-num purple">{statVal(stats.totalSolved)}</div>
+                  <div className="stat-lbl">Problems Solved</div>
+                </div>
+                <div className="stat-tile">
+                  <div className="stat-num green">{statVal(stats.currentStreak, "d")}</div>
+                  <div className="stat-lbl">Current Streak</div>
+                </div>
+                <div className="stat-tile">
+                  <div className="stat-num blue">{statVal(stats.longestStreak, "d")}</div>
+                  <div className="stat-lbl">Longest Streak</div>
+                </div>
+                <div className="stat-tile">
+                  <div className="stat-num orange">
+                    {settings.activePlatform === "codeforces" || settings.activePlatform === "codechef"
+                      ? statVal(stats.rating)
+                      : statVal(stats.rating)}
+                  </div>
+                  <div className="stat-lbl">
+                    {settings.activePlatform === "codeforces" || settings.activePlatform === "codechef"
+                      ? "Rating"
+                      : "Contest Rating"}
+                  </div>
+                </div>
               </div>
-              <div className="stat-lbl">
-                {settings.activePlatform === "codeforces" || settings.activePlatform === "codechef"
-                  ? "Rating"
-                  : "Submissions"}
-              </div>
-            </div>
-          </div>
-          {stats.error && (
-            <div style={{ marginTop: 6, fontSize: 10, color: "#ef4444" }}>
-              ⚠ {stats.error}
-            </div>
+              {stats.error && (
+                <div style={{ marginTop: 6, fontSize: 10, color: "#ef4444", lineHeight: 1.4 }}>
+                  ⚠ {stats.error}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -193,9 +225,17 @@ function App() {
           <div className="section">
             <div className="section-head">
               <span className="section-label">Activity · 365 days</span>
-              <span className="mock-pill">⚠ Mock</span>
+              {stats.lastSynced && (
+                <span className="mock-pill" style={{ color: "var(--green)", opacity: 0.8 }}>● Live</span>
+              )}
             </div>
-            <Heatmap data={stats.heatmapData} />
+            {Object.keys(stats.heatmapData).length === 0 && !stats.isLoading ? (
+              <div style={{ padding: "10px 0", textAlign: "center", color: "var(--t3)", fontSize: 11 }}>
+                {noUsername ? "No username set" : stats.lastSynced ? "No activity data available" : "Waiting for sync…"}
+              </div>
+            ) : (
+              <Heatmap data={stats.heatmapData} />
+            )}
           </div>
         )}
 
@@ -204,7 +244,6 @@ function App() {
           <div className="section">
             <div className="section-head">
               <span className="section-label">Upcoming Contests</span>
-              <span className="mock-pill">⚠ Mock</span>
             </div>
             {upcoming.map((c) => (
               <ContestCard key={c.id} contest={c} />
@@ -222,7 +261,9 @@ function App() {
             ? `Synced ${new Date(stats.lastSynced).toLocaleTimeString()}`
             : stats.isLoading
               ? "Syncing…"
-              : "⚠ Mock data"}
+              : noUsername
+                ? "No account configured"
+                : "Press ↻ to sync"}
         </span>
         <div className="footer-btns">
           <button className="footer-btn" title="Refresh" onClick={handleRefresh}>

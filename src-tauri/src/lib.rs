@@ -234,6 +234,7 @@ async fn set_window_bounds<R: Runtime>(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_http::init())
         .invoke_handler(tauri::generate_handler![
             start_drag,
             pin_to_desktop,

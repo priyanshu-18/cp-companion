@@ -890,3 +890,42 @@ html, body, #root {
   transition: background 0.14s;
 }
 .s-danger-btn:hover { background: rgba(239, 68, 68, 0.18); }
+
+
+/* ── Account verify UI ───────────────────────────────────────────────────────── */
+.s-verify-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.s-verify-row .s-input {
+  flex: 1;
+  min-width: 0;
+}
+.s-verify-btn {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: var(--r-xs);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--t2);
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+  white-space: nowrap;
+}
+.s-verify-btn:hover:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.s-verify-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.s-verify-btn.loading  { color: var(--blue); border-color: rgba(96,165,250,0.3); }
+.s-verify-btn.ok       { color: var(--green); border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.08); }
+.s-verify-btn.error    { color: #ef4444; border-color: rgba(239,68,68,0.3); }
+
+.s-verify-err  { margin-top: 5px; font-size: 10px; color: #ef4444; line-height: 1.4; }
+.s-verify-ok   { margin-top: 5px; font-size: 10px; color: var(--green); }
+.s-verify-saved { margin-top: 4px; font-size: 10px; color: var(--t3); }

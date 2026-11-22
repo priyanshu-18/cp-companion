@@ -19,18 +19,36 @@ export type WindowMode = "floating" | "desktop";
 export interface PlatformStats {
   platform: Platform;
   username: string;
-  /** null if the stat is unavailable for this platform */
+  /** null = stat is unavailable for this platform or not yet fetched */
   totalSolved:       number | null;
   currentStreak:     number | null;
   longestStreak:     number | null;
   totalSubmissions:  number | null;
   ranking?:          number | null;
-  rating?:           number | null; // Codeforces / CodeChef rating
+  rating?:           number | null; // Codeforces / CodeChef / LeetCode contest rating
   /** Map of "YYYY-MM-DD" → submission count. Empty when unavailable. */
   heatmapData: Record<string, number>;
   lastSynced: string | null;   // ISO timestamp; null = never synced
   isLoading: boolean;
   error: string | null;
+}
+
+/** Empty stats state for a platform before any data has been fetched. */
+export function emptyStats(platform: Platform): PlatformStats {
+  return {
+    platform,
+    username:         "",
+    totalSolved:      null,
+    currentStreak:    null,
+    longestStreak:    null,
+    totalSubmissions: null,
+    ranking:          null,
+    rating:           null,
+    heatmapData:      {},
+    lastSynced:       null,
+    isLoading:        false,
+    error:            null,
+  };
 }
 
 // ─── Contest ──────────────────────────────────────────────────────────────────

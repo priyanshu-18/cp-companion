@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useAppStore } from "../store/appStore";
 import type { Platform, WindowMode, Theme, RefreshInterval } from "../types";
+import { fetchLeetCodeStats } from "../services/leetcode";
+import { fetchCodeChefStats } from "../services/codechef";
+import { fetchCodeforcesStats } from "../services/codeforces";
 
 interface Props {
   onClose: () => void;
@@ -51,26 +54,6 @@ function SegmentRow<T extends string>({
   );
 }
 
-function TextInput({ label, value, placeholder, onChange }: {
-  label: string; value: string; placeholder: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="s-field">
-      <label className="s-field-label">{label}</label>
-      <input
-        className="s-input"
-        type="text"
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        spellCheck={false}
-        autoCapitalize="off"
-        autoCorrect="off"
-      />
-    </div>
-  );
-}
 
 function ToggleRow({ label, sub, value, onChange }: {
   label: string; sub?: string; value: boolean; onChange: (v: boolean) => void;
@@ -89,9 +72,23 @@ function ToggleRow({ label, sub, value, onChange }: {
 // ── Main Settings Component ───────────────────────────────────────────────────
 
 export default function Settings({ onClose }: Props) {
-  const { settings, updateSettings, setWindowMode } = useAppStore();
+  const { settings, updateSettings, setWindowMode, triggerRefresh } = useAppStore();
   const [section, setSection] = useState<Section>("accounts");
   const [saved, setSaved] = useState(false);
+
+  // ── Per-platform account verification state ───────────────────────────────
+  type VerifyState = "idle" | "loading" | "ok" | "error";
+  const [lcVerify,  setLcVerify]  = useState<VerifyState>("idle");
+  const [ccVerify,  setCcVerify]  = useState<VerifyState>("idle");
+  const [cfVerify,  setCfVerify]  = useState<VerifyState>("idle");
+  const [lcErr,  setLcErr]  = useState("");
+  const [ccErr,  setCcErr]  = useState("");
+  const [cfErr,  setCfErr]  = useState("");
+
+  // Draft values (uncommitted until Verify pressed)
+  const [lcDraft, setLcDraft] = useState(settings.leetcodeUsername);
+  const [ccDraft, setCcDraft] = useState(settings.codechefUsername);
+  const [cfDraft, setCfDraft] = useState(settings.codeforcesHandle);
 
   const save = (partial: Parameters<typeof updateSettings>[0]) => {
     updateSettings(partial);
@@ -103,43 +100,153 @@ export default function Settings({ onClose }: Props) {
     await setWindowMode(mode);
   };
 
+  // ── Account verify handlers ───────────────────────────────────────────────
+
+  const verifyLeetCode = async () => {
+    const handle = lcDraft.trim();
+    if (!handle) return;
+    setLcVerify("loading"); setLcErr("");
+    try {
+      await fetchLeetCodeStats(handle);
+      save({ leetcodeUsername: handle });
+      setLcVerify("ok");
+      triggerRefresh().catch(() => {});
+    } catch (e: unknown) {
+      setLcVerify("error");
+      setLcErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const verifyCodeChef = async () => {
+    const handle = ccDraft.trim();
+    if (!handle) return;
+    setCcVerify("loading"); setCcErr("");
+    try {
+      await fetchCodeChefStats(handle);
+      save({ codechefUsername: handle });
+      setCcVerify("ok");
+      triggerRefresh().catch(() => {});
+    } catch (e: unknown) {
+      setCcVerify("error");
+      setCcErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const verifyCodeforces = async () => {
+    const handle = cfDraft.trim();
+    if (!handle) return;
+    setCfVerify("loading"); setCfErr("");
+    try {
+      await fetchCodeforcesStats(handle);
+      save({ codeforcesHandle: handle });
+      setCfVerify("ok");
+      triggerRefresh().catch(() => {});
+    } catch (e: unknown) {
+      setCfVerify("error");
+      setCfErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   // ── Section renderers ─────────────────────────────────────────────────────
 
   const renderAccounts = () => (
     <div className="s-section-body">
       <p className="s-hint">
-        Enter your usernames. Statistics will be fetched when real integrations
-        are enabled in Phase 4.
+        Enter your handle and press <strong>Verify</strong> to validate the
+        account and fetch real statistics.
       </p>
 
+      {/* ── LeetCode ── */}
       <div className="s-group">
         <div className="s-group-title">LeetCode</div>
-        <TextInput
-          label="Username"
-          value={settings.leetcodeUsername}
-          placeholder="e.g. neal_wu"
-          onChange={(v) => save({ leetcodeUsername: v.trim() })}
-        />
+        <div className="s-field">
+          <label className="s-field-label">Username</label>
+          <div className="s-verify-row">
+            <input
+              className="s-input"
+              type="text"
+              value={lcDraft}
+              placeholder="e.g. neal_wu"
+              onChange={(e) => { setLcDraft(e.target.value); setLcVerify("idle"); setLcErr(""); }}
+              onKeyDown={(e) => e.key === "Enter" && verifyLeetCode()}
+              spellCheck={false} autoCapitalize="off" autoCorrect="off"
+            />
+            <button
+              className={`s-verify-btn ${lcVerify}`}
+              onClick={verifyLeetCode}
+              disabled={lcVerify === "loading" || !lcDraft.trim()}
+            >
+              {lcVerify === "loading" ? "⟳" : lcVerify === "ok" ? "✓" : "Verify"}
+            </button>
+          </div>
+          {lcVerify === "error" && <div className="s-verify-err">{lcErr}</div>}
+          {lcVerify === "ok" && <div className="s-verify-ok">Account verified ✓</div>}
+          {settings.leetcodeUsername && lcVerify === "idle" && (
+            <div className="s-verify-saved">Saved: {settings.leetcodeUsername}</div>
+          )}
+        </div>
       </div>
 
+      {/* ── CodeChef ── */}
       <div className="s-group">
         <div className="s-group-title">CodeChef</div>
-        <TextInput
-          label="Username / Handle"
-          value={settings.codechefUsername}
-          placeholder="e.g. gennady.korotkevich"
-          onChange={(v) => save({ codechefUsername: v.trim() })}
-        />
+        <div className="s-field">
+          <label className="s-field-label">Username / Handle</label>
+          <div className="s-verify-row">
+            <input
+              className="s-input"
+              type="text"
+              value={ccDraft}
+              placeholder="e.g. gennady"
+              onChange={(e) => { setCcDraft(e.target.value); setCcVerify("idle"); setCcErr(""); }}
+              onKeyDown={(e) => e.key === "Enter" && verifyCodeChef()}
+              spellCheck={false} autoCapitalize="off" autoCorrect="off"
+            />
+            <button
+              className={`s-verify-btn ${ccVerify}`}
+              onClick={verifyCodeChef}
+              disabled={ccVerify === "loading" || !ccDraft.trim()}
+            >
+              {ccVerify === "loading" ? "⟳" : ccVerify === "ok" ? "✓" : "Verify"}
+            </button>
+          </div>
+          {ccVerify === "error" && <div className="s-verify-err">{ccErr}</div>}
+          {ccVerify === "ok" && <div className="s-verify-ok">Account verified ✓ (stats limited — no public API)</div>}
+          {settings.codechefUsername && ccVerify === "idle" && (
+            <div className="s-verify-saved">Saved: {settings.codechefUsername}</div>
+          )}
+        </div>
       </div>
 
+      {/* ── Codeforces ── */}
       <div className="s-group">
         <div className="s-group-title">Codeforces</div>
-        <TextInput
-          label="Handle"
-          value={settings.codeforcesHandle}
-          placeholder="e.g. tourist"
-          onChange={(v) => save({ codeforcesHandle: v.trim() })}
-        />
+        <div className="s-field">
+          <label className="s-field-label">Handle</label>
+          <div className="s-verify-row">
+            <input
+              className="s-input"
+              type="text"
+              value={cfDraft}
+              placeholder="e.g. tourist"
+              onChange={(e) => { setCfDraft(e.target.value); setCfVerify("idle"); setCfErr(""); }}
+              onKeyDown={(e) => e.key === "Enter" && verifyCodeforces()}
+              spellCheck={false} autoCapitalize="off" autoCorrect="off"
+            />
+            <button
+              className={`s-verify-btn ${cfVerify}`}
+              onClick={verifyCodeforces}
+              disabled={cfVerify === "loading" || !cfDraft.trim()}
+            >
+              {cfVerify === "loading" ? "⟳" : cfVerify === "ok" ? "✓" : "Verify"}
+            </button>
+          </div>
+          {cfVerify === "error" && <div className="s-verify-err">{cfErr}</div>}
+          {cfVerify === "ok" && <div className="s-verify-ok">Account verified ✓</div>}
+          {settings.codeforcesHandle && cfVerify === "idle" && (
+            <div className="s-verify-saved">Saved: {settings.codeforcesHandle}</div>
+          )}
+        </div>
       </div>
     </div>
   );
