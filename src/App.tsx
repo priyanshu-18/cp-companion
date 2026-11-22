@@ -105,7 +105,7 @@ function App() {
               : <>{v}{suffix}</>;
 
   return (
-    <div className="widget" style={{ opacity: settings.opacity }}>
+    <div className="widget">
 
       {/* ── Settings overlay ──────────────────────────────────────────────── */}
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
