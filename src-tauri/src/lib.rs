@@ -199,21 +199,32 @@ async fn close_window<R: Runtime>(window: tauri::Window<R>) {
     let _ = window.close();
 }
 
+/// Returns current outer position and inner (content) size as (x, y, w, h).
 #[tauri::command]
-async fn get_window_position<R: Runtime>(
+async fn get_window_bounds<R: Runtime>(
     window: tauri::Window<R>,
-) -> Result<(i32, i32), String> {
-    let pos = window.outer_position().map_err(|e| e.to_string())?;
-    Ok((pos.x, pos.y))
+) -> Result<(i32, i32, u32, u32), String> {
+    let pos  = window.outer_position().map_err(|e| e.to_string())?;
+    let size = window.inner_size().map_err(|e| e.to_string())?;
+    Ok((pos.x, pos.y, size.width, size.height))
 }
 
+/// Restores saved position and size.  Clamps to sensible limits before applying.
 #[tauri::command]
-async fn set_window_position<R: Runtime>(
+async fn set_window_bounds<R: Runtime>(
     window: tauri::Window<R>,
     x: i32,
     y: i32,
+    w: u32,
+    h: u32,
 ) -> Result<(), String> {
-    use tauri::PhysicalPosition;
+    use tauri::{PhysicalPosition, PhysicalSize};
+    // Clamp width/height to configured limits
+    let w = w.clamp(300, 560);
+    let h = h.clamp(480, 1000);
+    window
+        .set_size(PhysicalSize::new(w, h))
+        .map_err(|e| e.to_string())?;
     window
         .set_position(PhysicalPosition::new(x, y))
         .map_err(|e| e.to_string())
@@ -229,8 +240,8 @@ pub fn run() {
             set_floating_mode,
             minimize_window,
             close_window,
-            get_window_position,
-            set_window_position,
+            get_window_bounds,
+            set_window_bounds,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CP Companion");

@@ -23,8 +23,18 @@ function App() {
 
   // ── Apply stored window mode on first mount ───────────────────────────────
   useEffect(() => {
-    // Small delay so the window is fully ready before native calls
-    const t = setTimeout(() => {
+    const t = setTimeout(async () => {
+      // 1. Restore saved window size + position
+      const { windowX, windowY, windowW, windowH } = settings;
+      if (windowX != null && windowY != null) {
+        invoke("set_window_bounds", {
+          x: windowX,
+          y: windowY,
+          w: windowW ?? 360,
+          h: windowH ?? 700,
+        }).catch(() => {});
+      }
+      // 2. Apply stored window mode (floating / desktop)
       setWindowMode(settings.windowMode).catch(() => {});
     }, 150);
     return () => clearTimeout(t);
@@ -42,9 +52,11 @@ function App() {
   const handleDrag  = () => invoke("start_drag").catch(() => {});
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Save position before closing
-    invoke<[number, number]>("get_window_position")
-      .then(([x, y]) => useAppStore.getState().updateSettings({ windowX: x, windowY: y }))
+    // Save position + size before closing
+    invoke<[number, number, number, number]>("get_window_bounds")
+      .then(([x, y, w, h]) =>
+        useAppStore.getState().updateSettings({ windowX: x, windowY: y, windowW: w, windowH: h })
+      )
       .catch(() => {})
       .finally(() => invoke("close_window").catch(() => {}));
   };

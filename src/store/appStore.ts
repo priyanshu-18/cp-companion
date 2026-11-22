@@ -48,6 +48,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   notifyDailyReminder: false,
   windowX:             null,
   windowY:             null,
+  windowW:             null,
+  windowH:             null,
 };
 
 // ── Store ─────────────────────────────────────────────────────────────────────

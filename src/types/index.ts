@@ -87,7 +87,9 @@ export interface AppSettings {
   notifyContest15m:   boolean;
   notifyDailyReminder:boolean;
 
-  // Position (physical pixels; null = use window center)
+  // Position and size (physical pixels; null = use window defaults)
   windowX: number | null;
   windowY: number | null;
+  windowW: number | null;
+  windowH: number | null;
 }
