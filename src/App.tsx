@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 import { useAppStore } from "./store/appStore";
 import { PLATFORM_LABELS } from "./types";
@@ -47,6 +48,16 @@ function App() {
     if (leetcodeUsername || codechefUsername || codeforcesHandle) {
       triggerRefresh().catch(() => {});
     }
+    const unlistenRefresh = listen("tray-refresh", () => {
+      triggerRefresh({ bypassCooldown: true }).catch(() => {});
+    });
+    const unlistenMode = listen<"desktop" | "floating">("tray-set-mode", (e) => {
+      setWindowMode(e.payload).catch(() => {});
+    });
+    return () => {
+      unlistenRefresh.then((f) => f()).catch(() => {});
+      unlistenMode.then((f) => f()).catch(() => {});
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

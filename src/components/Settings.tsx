@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "../store/appStore";
 import type { Platform, WindowMode, Theme, RefreshInterval } from "../types";
 import { fetchLeetCodeStats } from "../services/leetcode";
@@ -75,6 +76,11 @@ export default function Settings({ onClose }: Props) {
   const { settings, updateSettings, setWindowMode, setPlatformStats, triggerRefresh } = useAppStore();
   const [section, setSection] = useState<Section>("accounts");
   const [saved, setSaved] = useState(false);
+  const [autostart, setAutostart] = useState(true);
+
+  useEffect(() => {
+    invoke<boolean>("get_autostart").then(setAutostart).catch(() => {});
+  }, []);
 
   // ── Per-platform account verification state ───────────────────────────────
   type VerifyState = "idle" | "loading" | "ok" | "error";
@@ -282,6 +288,19 @@ export default function Settings({ onClose }: Props) {
           <b>Desktop mode</b> places the widget on the wallpaper layer.
           App windows appear on top of it, like the macOS Clock widget.
         </p>
+      </div>
+
+      <div className="s-group">
+        <div className="s-group-title">Startup</div>
+        <ToggleRow
+          label="Launch at login"
+          sub="Start CP Companion automatically"
+          value={autostart}
+          onChange={(v) => {
+            setAutostart(v);
+            invoke("set_autostart", { enabled: v }).catch(() => {});
+          }}
+        />
       </div>
 
       <div className="s-group">

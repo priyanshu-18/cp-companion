@@ -2,7 +2,12 @@ mod net;
 mod platforms;
 
 use net::{ApiError, ContestDto, HttpState, PlatformStatsDto};
-use tauri::{Runtime, State};
+use tauri::{
+    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Emitter, Manager, Runtime, State,
+};
+use tauri_plugin_autostart::ManagerExt as AutostartExt;
 
 // ── macOS: Direct ObjC runtime calls (no external crate needed) ──────────────
 // All functions in this module MUST be called from the macOS main thread.
@@ -282,12 +287,128 @@ async fn fetch_contests(state: State<'_, HttpState>) -> Result<Vec<ContestDto>, 
     Ok(all)
 }
 
+#[tauri::command]
+fn get_autostart<R: Runtime>(app: tauri::AppHandle<R>) -> Result<bool, String> {
+    app.autolaunch().is_enabled().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn set_autostart<R: Runtime>(app: tauri::AppHandle<R>, enabled: bool) -> Result<(), String> {
+    let al = app.autolaunch();
+    if enabled {
+        al.enable().map_err(|e| e.to_string())
+    } else {
+        al.disable().map_err(|e| e.to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let http_state = HttpState::new().expect("failed to build HTTP client");
     tauri::Builder::default()
         .manage(http_state)
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.show();
+                let _ = win.set_focus();
+            }
+        }))
+        .setup(|app| {
+            // Hide from Dock & Cmd+Tab app switcher on macOS
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+            // Enable autostart by default on first run
+            if let Ok(false) = app.autolaunch().is_enabled() {
+                let _ = app.autolaunch().enable();
+            }
+            let autostart_on = app.autolaunch().is_enabled().unwrap_or(true);
+
+            // Build menu bar tray icon
+            let show_hide = MenuItem::with_id(app, "toggle_vis", "Show / Hide Widget", true, None::<&str>)?;
+            let refresh = MenuItem::with_id(app, "refresh", "Refresh Now", true, None::<&str>)?;
+            let pin_item = CheckMenuItem::with_id(app, "pin_desktop", "Pin to Desktop", true, false, None::<&str>)?;
+            let login_item = CheckMenuItem::with_id(app, "autostart", "Launch at Login", true, autostart_on, None::<&str>)?;
+            let sep = PredefinedMenuItem::separator(app)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit CP Companion", true, None::<&str>)?;
+
+            let menu = Menu::with_items(
+                app,
+                &[&show_hide, &refresh, &pin_item, &login_item, &sep, &quit],
+            )?;
+
+            let pin_clone = pin_item.clone();
+            let login_clone = login_item.clone();
+
+            let mut tray_builder = TrayIconBuilder::new()
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .tooltip("CP Companion");
+
+            if let Some(icon) = app.default_window_icon() {
+                tray_builder = tray_builder.icon(icon.clone());
+            }
+
+            tray_builder
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(win) = app.get_webview_window("main") {
+                            if win.is_visible().unwrap_or(false) {
+                                let _ = win.hide();
+                            } else {
+                                let _ = win.show();
+                                let _ = win.set_focus();
+                            }
+                        }
+                    }
+                })
+                .on_menu_event(move |app, event| match event.id.as_ref() {
+                    "toggle_vis" => {
+                        if let Some(win) = app.get_webview_window("main") {
+                            if win.is_visible().unwrap_or(false) {
+                                let _ = win.hide();
+                            } else {
+                                let _ = win.show();
+                                let _ = win.set_focus();
+                            }
+                        }
+                    }
+                    "refresh" => {
+                        let _ = app.emit("tray-refresh", ());
+                    }
+                    "pin_desktop" => {
+                        let pinned = pin_clone.is_checked().unwrap_or(false);
+                        let _ = app.emit("tray-set-mode", if pinned { "desktop" } else { "floating" });
+                    }
+                    "autostart" => {
+                        let enabled = login_clone.is_checked().unwrap_or(true);
+                        let al = app.autolaunch();
+                        if enabled {
+                            let _ = al.enable();
+                        } else {
+                            let _ = al.disable();
+                        }
+                    }
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .build(app)?;
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             start_drag,
             pin_to_desktop,
@@ -300,6 +421,8 @@ pub fn run() {
             fetch_leetcode,
             fetch_codechef,
             fetch_contests,
+            get_autostart,
+            set_autostart,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CP Companion");
