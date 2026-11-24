@@ -38,3 +38,6 @@ CP Companion checks `latest.json` from GitHub Releases on launch and every 24 ho
 
 ## Disclaimer
 CP Companion is not affiliated with, endorsed by, or sponsored by LeetCode, CodeChef, or Codeforces. All trademarks belong to their respective owners.
+
+## License
+Licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See [LICENSE](LICENSE) for details.
