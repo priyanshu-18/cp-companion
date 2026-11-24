@@ -72,7 +72,7 @@ function ToggleRow({ label, sub, value, onChange }: {
 // ── Main Settings Component ───────────────────────────────────────────────────
 
 export default function Settings({ onClose }: Props) {
-  const { settings, updateSettings, setWindowMode, triggerRefresh } = useAppStore();
+  const { settings, updateSettings, setWindowMode, setPlatformStats, triggerRefresh } = useAppStore();
   const [section, setSection] = useState<Section>("accounts");
   const [saved, setSaved] = useState(false);
 
@@ -107,10 +107,11 @@ export default function Settings({ onClose }: Props) {
     if (!handle) return;
     setLcVerify("loading"); setLcErr("");
     try {
-      await fetchLeetCodeStats(handle);
-      save({ leetcodeUsername: handle });
+      const stats = await fetchLeetCodeStats(handle);
+      save({ leetcodeUsername: stats.username || handle });
+      setPlatformStats("leetcode", stats);
       setLcVerify("ok");
-      triggerRefresh().catch(() => {});
+      triggerRefresh({ bypassCooldown: false }).catch(() => {});
     } catch (e: unknown) {
       setLcVerify("error");
       setLcErr(e instanceof Error ? e.message : String(e));
@@ -122,10 +123,11 @@ export default function Settings({ onClose }: Props) {
     if (!handle) return;
     setCcVerify("loading"); setCcErr("");
     try {
-      await fetchCodeChefStats(handle);
-      save({ codechefUsername: handle });
+      const stats = await fetchCodeChefStats(handle);
+      save({ codechefUsername: stats.username || handle });
+      setPlatformStats("codechef", stats);
       setCcVerify("ok");
-      triggerRefresh().catch(() => {});
+      triggerRefresh({ bypassCooldown: false }).catch(() => {});
     } catch (e: unknown) {
       setCcVerify("error");
       setCcErr(e instanceof Error ? e.message : String(e));
@@ -137,10 +139,11 @@ export default function Settings({ onClose }: Props) {
     if (!handle) return;
     setCfVerify("loading"); setCfErr("");
     try {
-      await fetchCodeforcesStats(handle);
-      save({ codeforcesHandle: handle });
+      const stats = await fetchCodeforcesStats(handle);
+      save({ codeforcesHandle: stats.username || handle });
+      setPlatformStats("codeforces", stats);
       setCfVerify("ok");
-      triggerRefresh().catch(() => {});
+      triggerRefresh({ bypassCooldown: false }).catch(() => {});
     } catch (e: unknown) {
       setCfVerify("error");
       setCfErr(e instanceof Error ? e.message : String(e));

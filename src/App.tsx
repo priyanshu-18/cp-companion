@@ -90,6 +90,15 @@ function App() {
     }
   };
 
+  // ── Merged 365-day heatmap across all 3 platforms ────────────────────────
+  const mergedHeatmap: Record<string, number> = {};
+  for (const map of [leetcode.heatmapData, codechef.heatmapData, codeforces.heatmapData]) {
+    for (const [day, count] of Object.entries(map)) {
+      mergedHeatmap[day] = (mergedHeatmap[day] ?? 0) + count;
+    }
+  }
+  const hasHeatmapData = Object.keys(mergedHeatmap).length > 0;
+
   // ── Upcoming contests ─────────────────────────────────────────────────────
   const upcoming = [...contests]
     .filter((c) => new Date(c.startTime) > new Date())
@@ -251,11 +260,11 @@ function App() {
           <div className="section">
             <div className="section-head">
               <span className="section-label">Activity · 365 days</span>
-              {Object.keys(stats.heatmapData).length > 0 && (
+              {hasHeatmapData && (
                 <span className="mock-pill" style={{ color: "var(--green)", opacity: 0.8 }}>● Live</span>
               )}
             </div>
-            {Object.keys(stats.heatmapData).length === 0 && !stats.isLoading ? (
+            {!hasHeatmapData && !stats.isLoading ? (
               <div style={{ padding: "10px 0", textAlign: "center", color: "var(--t3)", fontSize: 11 }}>
                 {noUsername
                   ? "No username set"
@@ -264,7 +273,7 @@ function App() {
                     : "Waiting for sync…"}
               </div>
             ) : (
-              <Heatmap data={stats.heatmapData} />
+              <Heatmap data={mergedHeatmap} />
             )}
           </div>
         )}

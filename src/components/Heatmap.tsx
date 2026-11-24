@@ -14,6 +14,13 @@ function getLevel(count: number): 0 | 1 | 2 | 3 | 4 {
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+function toLocalDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function buildWeeks(): string[][] {
   const today = new Date();
   today.setHours(23, 59, 59, 0);
@@ -29,7 +36,7 @@ function buildWeeks(): string[][] {
   while (cur <= today) {
     const week: string[] = [];
     for (let d = 0; d < 7; d++) {
-      week.push(cur.toISOString().split("T")[0]);
+      week.push(toLocalDateKey(cur));
       cur.setDate(cur.getDate() + 1);
     }
     weeks.push(week);
@@ -86,7 +93,7 @@ export default function Heatmap({ data }: Props) {
             week.map((date, di) => {
               const count = data[date] ?? 0;
               const level = getLevel(count);
-              const isFuture = date > new Date().toISOString().split("T")[0];
+              const isFuture = date > toLocalDateKey(new Date());
               return (
                 <div
                   key={date}
