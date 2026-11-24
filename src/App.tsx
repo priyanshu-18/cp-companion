@@ -182,6 +182,14 @@ function App() {
         </div>
 
         <div className="traffic-lights" onMouseDown={(e) => e.stopPropagation()}>
+          <button
+            className="footer-btn"
+            title="Support the project"
+            onClick={() => invoke("open_support_link", { key: "githubSponsors" }).catch(() => {})}
+            style={{ width: 16, height: 16, fontSize: 10, color: "#ec4899", marginRight: 2 }}
+          >
+            ♥
+          </button>
           <button className="tl tl-close"   onClick={handleClose}    title="Close" />
           <button className="tl tl-min"     onClick={handleMinimize} title="Minimise" />
           <button

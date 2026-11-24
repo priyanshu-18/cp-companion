@@ -8,6 +8,7 @@ use tauri::{
     Emitter, Manager, Runtime, State,
 };
 use tauri_plugin_autostart::ManagerExt as AutostartExt;
+use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 
 // ── macOS: Direct ObjC runtime calls (no external crate needed) ──────────────
@@ -304,6 +305,21 @@ fn set_autostart<R: Runtime>(app: tauri::AppHandle<R>, enabled: bool) -> Result<
 }
 
 #[tauri::command]
+fn open_support_link<R: Runtime>(app: tauri::AppHandle<R>, key: String) -> Result<(), String> {
+    let url = match key.as_str() {
+        "githubRepo" => "https://github.com/OWNER/REPO",
+        "githubSponsors" => "https://github.com/sponsors/OWNER",
+        "kofi" => "https://ko-fi.com/OWNER",
+        "reportBug" => "https://github.com/OWNER/REPO/issues/new",
+        "downloadLatest" => "https://github.com/OWNER/REPO/releases/latest",
+        _ => return Err("URL key not in allowlist".to_string()),
+    };
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn check_update<R: Runtime>(app: tauri::AppHandle<R>) -> Result<Option<String>, String> {
     let updater = app.updater().map_err(|e| e.to_string())?;
     match updater.check().await {
@@ -451,6 +467,7 @@ pub fn run() {
             set_autostart,
             check_update,
             install_update,
+            open_support_link,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CP Companion");

@@ -445,6 +445,17 @@ export default function Settings({ onClose }: Props) {
       </div>
 
       <div className="s-group">
+        <div className="s-group-title">Support the project</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+          <button className="s-verify-btn" onClick={() => invoke("open_support_link", { key: "githubSponsors" }).catch(() => {})}>♥ GitHub Sponsors</button>
+          <button className="s-verify-btn" onClick={() => invoke("open_support_link", { key: "kofi" }).catch(() => {})}>☕ Ko-fi</button>
+          <button className="s-verify-btn" onClick={() => invoke("open_support_link", { key: "githubRepo" }).catch(() => {})}>★ Star on GitHub</button>
+          <button className="s-verify-btn" onClick={() => invoke("open_support_link", { key: "reportBug" }).catch(() => {})}>⚑ Report a bug</button>
+          <button className="s-verify-btn" onClick={() => invoke("open_support_link", { key: "downloadLatest" }).catch(() => {})}>↓ Download latest</button>
+        </div>
+      </div>
+
+      <div className="s-group">
         <div className="s-group-title">Data</div>
         <button
           className="s-danger-btn"
