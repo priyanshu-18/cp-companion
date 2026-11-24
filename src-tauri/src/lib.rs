@@ -53,7 +53,7 @@ mod macos_window {
 // ── Windows: Win32 API ────────────────────────────────────────────────────────
 #[cfg(target_os = "windows")]
 mod win32_window {
-    extern "system" {
+    unsafe extern "system" {
         fn SetWindowPos(
             h_wnd: isize, h_wnd_insert_after: isize,
             x: i32, y: i32, cx: i32, cy: i32, u_flags: u32,
@@ -161,7 +161,7 @@ async fn pin_to_desktop<R: Runtime>(window: tauri::Window<R>) -> Result<(), Stri
         // Win32 calls are safe from any thread; run directly.
         window.set_always_on_top(false).map_err(|e| e.to_string())?;
         let hwnd = window.hwnd().map_err(|e| e.to_string())?;
-        unsafe { win32_window::pin_to_desktop(hwnd); }
+        unsafe { win32_window::pin_to_desktop(hwnd.0 as isize); }
         eprintln!("[CP Companion] pin_to_desktop: HWND_BOTTOM applied");
     }
 
@@ -192,7 +192,7 @@ async fn set_floating_mode<R: Runtime>(window: tauri::Window<R>) -> Result<(), S
     #[cfg(target_os = "windows")]
     {
         let hwnd = window.hwnd().map_err(|e| e.to_string())?;
-        unsafe { win32_window::set_floating(hwnd); }
+        unsafe { win32_window::set_floating(hwnd.0 as isize); }
         window.set_always_on_top(true).map_err(|e| e.to_string())?;
         eprintln!("[CP Companion] set_floating_mode: HWND_TOPMOST applied");
     }
