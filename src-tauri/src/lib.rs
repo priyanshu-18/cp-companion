@@ -8,6 +8,7 @@ use tauri::{
     Emitter, Manager, Runtime, State,
 };
 use tauri_plugin_autostart::ManagerExt as AutostartExt;
+use tauri_plugin_updater::UpdaterExt;
 
 // ── macOS: Direct ObjC runtime calls (no external crate needed) ──────────────
 // All functions in this module MUST be called from the macOS main thread.
@@ -302,12 +303,37 @@ fn set_autostart<R: Runtime>(app: tauri::AppHandle<R>, enabled: bool) -> Result<
     }
 }
 
+#[tauri::command]
+async fn check_update<R: Runtime>(app: tauri::AppHandle<R>) -> Result<Option<String>, String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    match updater.check().await {
+        Ok(Some(update)) => Ok(Some(update.version)),
+        Ok(None) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn install_update<R: Runtime>(app: tauri::AppHandle<R>) -> Result<(), String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    if let Some(update) = updater.check().await.map_err(|e| e.to_string())? {
+        update
+            .download_and_install(|_, _| {}, || {})
+            .await
+            .map_err(|e| e.to_string())?;
+        app.restart();
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let http_state = HttpState::new().expect("failed to build HTTP client");
     tauri::Builder::default()
         .manage(http_state)
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -423,6 +449,8 @@ pub fn run() {
             fetch_contests,
             get_autostart,
             set_autostart,
+            check_update,
+            install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CP Companion");

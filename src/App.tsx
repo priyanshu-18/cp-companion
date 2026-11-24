@@ -17,6 +17,8 @@ function App() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [updateVer, setUpdateVer] = useState<string | null>(null);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
 
   // ── Active platform stats ─────────────────────────────────────────────────
   const statsMap = { leetcode, codechef, codeforces };
@@ -59,6 +61,18 @@ function App() {
       unlistenMode.then((f) => f()).catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Silent update check on launch + every 24h ─────────────────────────────
+  useEffect(() => {
+    const check = () => {
+      invoke<string | null>("check_update")
+        .then((v) => { if (v) setUpdateVer(v); })
+        .catch(() => {});
+    };
+    check();
+    const id = setInterval(check, 24 * 60 * 60 * 1000);
+    return () => clearInterval(id);
   }, []);
 
   // ── Apply opacity setting ─────────────────────────────────────────────────
@@ -195,6 +209,29 @@ function App() {
 
       {/* ── Scrollable Body ───────────────────────────────────────────────── */}
       <div className="widget-body">
+        {updateVer && (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "6px 10px", marginBottom: 6, borderRadius: 8,
+            background: "rgba(139, 92, 246, 0.14)", border: "1px solid rgba(139, 92, 246, 0.35)",
+            fontSize: 10, color: "var(--t1)",
+          }}>
+            <span>Update available (v{updateVer})</span>
+            <button
+              onClick={() => {
+                if (installingUpdate) return;
+                setInstallingUpdate(true);
+                invoke("install_update").catch(() => setInstallingUpdate(false));
+              }}
+              style={{
+                background: "var(--purple)", color: "#fff", border: "none",
+                borderRadius: 5, padding: "2px 8px", fontSize: 10, cursor: "pointer",
+              }}
+            >
+              {installingUpdate ? "Installing…" : "Install and restart"}
+            </button>
+          </div>
+        )}
 
         {/* ── Statistics ────────────────────────────────────────────────── */}
         <div className="section">

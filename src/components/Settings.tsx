@@ -77,6 +77,8 @@ export default function Settings({ onClose }: Props) {
   const [section, setSection] = useState<Section>("accounts");
   const [saved, setSaved] = useState(false);
   const [autostart, setAutostart] = useState(true);
+  const [updateMsg, setUpdateMsg] = useState<string | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   useEffect(() => {
     invoke<boolean>("get_autostart").then(setAutostart).catch(() => {});
@@ -422,6 +424,24 @@ export default function Settings({ onClose }: Props) {
           <span className="s-row-label">Build</span>
           <span className="s-row-sub">Tauri 2 · React 19 · Rust</span>
         </div>
+        <div className="s-row">
+          <span className="s-row-label">Updates</span>
+          <button
+            className="s-verify-btn"
+            disabled={checkingUpdate}
+            onClick={() => {
+              setCheckingUpdate(true);
+              setUpdateMsg(null);
+              invoke<string | null>("check_update")
+                .then((v) => setUpdateMsg(v ? `Update v${v} available` : "You're up to date"))
+                .catch(() => setUpdateMsg("Could not check for updates"))
+                .finally(() => setCheckingUpdate(false));
+            }}
+          >
+            {checkingUpdate ? "Checking…" : "Check for updates"}
+          </button>
+        </div>
+        {updateMsg && <p className="s-hint" style={{ marginTop: 4 }}>{updateMsg}</p>}
       </div>
 
       <div className="s-group">
