@@ -1,11 +1,11 @@
 // Central allowlisted URLs for CP Companion.
 // Replace OWNER/REPO and sponsor handles before publishing.
 export const PROJECT_LINKS = {
-  githubRepo:     "https://github.com/OWNER/REPO",
-  githubSponsors: "https://github.com/sponsors/OWNER",
-  kofi:           "https://ko-fi.com/OWNER",
+  githubRepo:     "https://github.com/priyanshu-18/cp-companion",
+  githubSponsors: "https://github.com/priyanshu-18/cp-companion",
+  kofi:           "https://ko-fi.com/impropriyanshu",
   reportBug:      "https://github.com/OWNER/REPO/issues/new",
-  downloadLatest: "https://github.com/OWNER/REPO/releases/latest",
+  downloadLatest: "https://ko-fi.com/impropriyanshu",
 } as const;
 
 export type ProjectLinkKey = keyof typeof PROJECT_LINKS;
