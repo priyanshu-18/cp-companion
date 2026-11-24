@@ -16,7 +16,10 @@ export default defineConfig(() => ({
   server: {
     port: 1420,
     strictPort: true,
-    host: host || false,
+    // Explicitly bind to 127.0.0.1 so Tauri's devUrl probe (also 127.0.0.1)
+    // can connect. Using "localhost" can resolve to ::1 on macOS Node 18+
+    // causing a mismatch and an infinite "Waiting for dev server" loop.
+    host: host || "127.0.0.1",
     hmr: host
       ? {
           protocol: "ws",
