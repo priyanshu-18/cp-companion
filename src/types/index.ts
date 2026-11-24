@@ -21,12 +21,17 @@ export interface PlatformStats {
   username: string;
   /** null = stat is unavailable for this platform or not yet fetched */
   totalSolved:       number | null;
+  easySolved?:       number | null;
+  mediumSolved?:     number | null;
+  hardSolved?:       number | null;
   currentStreak:     number | null;
   longestStreak:     number | null;
   totalSubmissions:  number | null;
   ranking?:          number | null;
   rating?:           number | null;    // Current rating (CF/CC) or contest rating (LC)
   maxRating?:        number | null;    // All-time peak rating (CF/CC); null for LC
+  rankTitle?:        string | null;
+  contestsCount?:    number | null;
   /** Map of "YYYY-MM-DD" → submission count. Empty when unavailable. */
   heatmapData: Record<string, number>;
   lastSynced: string | null;   // ISO timestamp; null = never synced
@@ -40,12 +45,17 @@ export function emptyStats(platform: Platform): PlatformStats {
     platform,
     username:         "",
     totalSolved:      null,
+    easySolved:       null,
+    mediumSolved:     null,
+    hardSolved:       null,
     currentStreak:    null,
     longestStreak:    null,
     totalSubmissions: null,
     ranking:          null,
     rating:           null,
     maxRating:        null,
+    rankTitle:        null,
+    contestsCount:    null,
     heatmapData:      {},
     lastSynced:       null,
     isLoading:        false,

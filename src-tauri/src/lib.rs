@@ -1,4 +1,8 @@
-use tauri::Runtime;
+mod net;
+mod platforms;
+
+use net::{ApiError, ContestDto, HttpState, PlatformStatsDto};
+use tauri::{Runtime, State};
 
 // ── macOS: Direct ObjC runtime calls (no external crate needed) ──────────────
 // All functions in this module MUST be called from the macOS main thread.
@@ -230,11 +234,60 @@ async fn set_window_bounds<R: Runtime>(
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn fetch_codeforces(
+    state: State<'_, HttpState>,
+    handle: String,
+) -> Result<PlatformStatsDto, ApiError> {
+    let clean = net::validate_handle(&handle)?;
+    platforms::codeforces::fetch_stats(&state.0, &clean).await
+}
+
+#[tauri::command]
+async fn fetch_leetcode(
+    state: State<'_, HttpState>,
+    handle: String,
+) -> Result<PlatformStatsDto, ApiError> {
+    let clean = net::validate_handle(&handle)?;
+    platforms::leetcode::fetch_stats(&state.0, &clean).await
+}
+
+#[tauri::command]
+async fn fetch_codechef(
+    state: State<'_, HttpState>,
+    handle: String,
+) -> Result<PlatformStatsDto, ApiError> {
+    let clean = net::validate_handle(&handle)?;
+    platforms::codechef::fetch_stats(&state.0, &clean).await
+}
+
+#[tauri::command]
+async fn fetch_contests(state: State<'_, HttpState>) -> Result<Vec<ContestDto>, ApiError> {
+    let (cf, lc, cc) = tokio::join!(
+        platforms::codeforces::fetch_contests(&state.0),
+        platforms::leetcode::fetch_contests(&state.0),
+        platforms::codechef::fetch_contests(&state.0),
+    );
+    let mut all = Vec::new();
+    if let Ok(mut v) = cf {
+        all.append(&mut v);
+    }
+    if let Ok(mut v) = lc {
+        all.append(&mut v);
+    }
+    if let Ok(mut v) = cc {
+        all.append(&mut v);
+    }
+    all.sort_by(|a, b| a.start_time.cmp(&b.start_time));
+    Ok(all)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let http_state = HttpState::new().expect("failed to build HTTP client");
     tauri::Builder::default()
+        .manage(http_state)
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_http::init())
         .invoke_handler(tauri::generate_handler![
             start_drag,
             pin_to_desktop,
@@ -243,6 +296,10 @@ pub fn run() {
             close_window,
             get_window_bounds,
             set_window_bounds,
+            fetch_codeforces,
+            fetch_leetcode,
+            fetch_codechef,
+            fetch_contests,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CP Companion");

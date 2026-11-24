@@ -407,7 +407,7 @@ export default function Settings({ onClose }: Props) {
         <button
           className="s-danger-btn"
           onClick={() => {
-            localStorage.removeItem("cp-companion-v2");
+            localStorage.removeItem("cp-companion-v3");
             window.location.reload();
           }}
         >
