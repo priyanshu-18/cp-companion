@@ -396,18 +396,19 @@ export default function Settings({ onClose }: Props) {
 
   const renderNotifications = () => (
     <div className="s-section-body">
-      <p className="s-hint">Native notifications will be implemented in Phase 6.</p>
-
       <div className="s-group">
         <div className="s-group-title">Contest Reminders</div>
+        <ToggleRow label="Enable notifications" value={settings.notificationsEnabled ?? true} onChange={(v) => save({ notificationsEnabled: v })} />
         <ToggleRow label="24 hours before"  value={settings.notifyContest24h}    onChange={(v) => save({ notifyContest24h: v })} />
+        <ToggleRow label="5 hours before"   value={settings.notifyContest5h ?? true}  onChange={(v) => save({ notifyContest5h: v })} />
+        <ToggleRow label="3 hours before"   value={settings.notifyContest3h ?? true}  onChange={(v) => save({ notifyContest3h: v })} />
         <ToggleRow label="1 hour before"    value={settings.notifyContest1h}     onChange={(v) => save({ notifyContest1h: v })} />
-        <ToggleRow label="15 minutes before"value={settings.notifyContest15m}    onChange={(v) => save({ notifyContest15m: v })} />
+        <ToggleRow label="10 min alarm"     sub="Sound + brief pop-up" value={settings.notifyContest10m ?? true} onChange={(v) => save({ notifyContest10m: v })} />
       </div>
 
       <div className="s-group">
-        <div className="s-group-title">Daily</div>
-        <ToggleRow label="Daily coding reminder" sub="Configure time in Phase 6" value={settings.notifyDailyReminder} onChange={(v) => save({ notifyDailyReminder: v })} />
+        <div className="s-group-title">Automation</div>
+        <ToggleRow label="Auto-open contest page at start" sub="Opens official contest URL once" value={settings.autoOpenContest ?? true} onChange={(v) => save({ autoOpenContest: v })} />
       </div>
     </div>
   );

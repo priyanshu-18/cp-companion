@@ -63,6 +63,61 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Contest notifications + 10m alarm (30s interval, runs even when hidden) ──
+  useEffect(() => {
+    const checkContests = () => {
+      const state = useAppStore.getState();
+      const s = state.settings;
+      if (!(s.notificationsEnabled ?? true)) return;
+
+      const thresholds: { mins: number; enabled: boolean; label: string }[] = [
+        { mins: 10,   enabled: s.notifyContest10m ?? true, label: "10 minutes" },
+        { mins: 60,   enabled: s.notifyContest1h,          label: "1 hour" },
+        { mins: 180,  enabled: s.notifyContest3h ?? true,  label: "3 hours" },
+        { mins: 300,  enabled: s.notifyContest5h ?? true,  label: "5 hours" },
+        { mins: 1440, enabled: s.notifyContest24h,         label: "24 hours" },
+      ];
+
+      const now = Date.now();
+      for (const c of state.contests) {
+        const minsLeft = (new Date(c.startTime).getTime() - now) / 60_000;
+        if (minsLeft <= 0 || minsLeft > 1440) continue;
+
+        // Nearest (smallest) threshold that we've entered
+        const nearest = thresholds.find((t) => minsLeft <= t.mins);
+        if (!nearest) continue;
+
+        const key = `${c.id}:${nearest.mins}`;
+        if (state.firedNotifications[key]) continue;
+
+        // Mark nearest + all larger thresholds as fired so late starts don't spam
+        const toMark = thresholds
+          .filter((t) => t.mins >= nearest.mins)
+          .map((t) => `${c.id}:${t.mins}`);
+        state.markNotificationsFired(toMark);
+
+        if (nearest.enabled) {
+          const isAlarm = nearest.mins === 10;
+          invoke("send_contest_notification", {
+            title: isAlarm ? `⏰ Starting in 10 min: ${c.name}` : `Contest in ${nearest.label}`,
+            body: `${c.platform.toUpperCase()} · ${c.name}`,
+            withSound: isAlarm,
+          }).catch(() => {});
+
+          if (isAlarm) {
+            invoke("briefly_show_alarm_window", {
+              restoreDesktop: s.windowMode === "desktop",
+            }).catch(() => {});
+          }
+        }
+      }
+    };
+
+    checkContests();
+    const id = setInterval(checkContests, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   // ── Silent update check on launch + every 24h ─────────────────────────────
   useEffect(() => {
     const check = () => {

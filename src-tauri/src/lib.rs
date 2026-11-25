@@ -8,6 +8,7 @@ use tauri::{
     Emitter, Manager, Runtime, State,
 };
 use tauri_plugin_autostart::ManagerExt as AutostartExt;
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 
@@ -305,6 +306,44 @@ fn set_autostart<R: Runtime>(app: tauri::AppHandle<R>, enabled: bool) -> Result<
 }
 
 #[tauri::command]
+async fn send_contest_notification<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    title: String,
+    body: String,
+    with_sound: bool,
+) -> Result<(), String> {
+    let notif = app.notification();
+    if let Ok(state) = notif.permission_state() {
+        if state != tauri_plugin_notification::PermissionState::Granted {
+            let _ = notif.request_permission();
+        }
+    }
+    let mut builder = notif.builder().title(title).body(body);
+    if with_sound {
+        builder = builder.sound("Ping");
+    }
+    let _ = builder.show();
+    Ok(())
+}
+
+#[tauri::command]
+async fn briefly_show_alarm_window<R: Runtime>(
+    window: tauri::Window<R>,
+    restore_desktop: bool,
+) -> Result<(), String> {
+    let _ = window.show();
+    let _ = set_floating_mode(window.clone()).await;
+    let win_clone = window.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        if restore_desktop {
+            let _ = pin_to_desktop(win_clone).await;
+        }
+    });
+    Ok(())
+}
+
+#[tauri::command]
 fn open_support_link<R: Runtime>(app: tauri::AppHandle<R>, key: String) -> Result<(), String> {
     let url = match key.as_str() {
         "githubRepo" => "https://github.com/OWNER/REPO",
@@ -349,6 +388,7 @@ pub fn run() {
         .manage(http_state)
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -468,6 +508,8 @@ pub fn run() {
             check_update,
             install_update,
             open_support_link,
+            send_contest_notification,
+            briefly_show_alarm_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CP Companion");

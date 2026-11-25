@@ -18,11 +18,15 @@ interface AppState {
   codeforces: PlatformStats;
   contests:   Contest[];
   lastAttemptAt: Record<Platform, number>;
+  firedNotifications: Record<string, boolean>;
+  openedContests: Record<string, boolean>;
 
   setActivePlatform: (p: Platform) => void;
   updateSettings:    (s: Partial<AppSettings>) => void;
   setWindowMode:     (mode: WindowMode) => Promise<void>;
   setPlatformStats:  (platform: Platform, stats: PlatformStats) => void;
+  markNotificationsFired: (keys: string[]) => void;
+  markContestOpened: (contestId: string) => void;
   triggerRefresh:    (options?: { bypassCooldown?: boolean }) => Promise<void>;
   setStatsLoading:   (platform: Platform, loading: boolean) => void;
   setStatsError:     (platform: Platform, error: string | null) => void;
@@ -38,11 +42,16 @@ const DEFAULT_SETTINGS: AppSettings = {
   opacity:             1.0,
   showHeatmap:         true,
   showContests:        true,
-  refreshInterval:     15,
-  notifyContest24h:    true,
-  notifyContest1h:     true,
-  notifyContest15m:    true,
-  notifyDailyReminder: false,
+  refreshInterval:      15,
+  notificationsEnabled: true,
+  notifyContest24h:     true,
+  notifyContest5h:      true,
+  notifyContest3h:      true,
+  notifyContest1h:      true,
+  notifyContest10m:     true,
+  notifyContest15m:     true,
+  notifyDailyReminder:  false,
+  autoOpenContest:      true,
   windowX:             null,
   windowY:             null,
   windowW:             null,
@@ -58,6 +67,8 @@ export const useAppStore = create<AppState>()(
       codeforces: emptyStats("codeforces"),
       contests:   [],
       lastAttemptAt: { leetcode: 0, codechef: 0, codeforces: 0 },
+      firedNotifications: {},
+      openedContests: {},
 
       setActivePlatform: (platform) =>
         set((s) => ({ settings: { ...s.settings, activePlatform: platform } })),
@@ -82,6 +93,18 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           [platform]: { ...stats, isLoading: false },
           lastAttemptAt: { ...s.lastAttemptAt, [platform]: Date.now() },
+        })),
+
+      markNotificationsFired: (keys) =>
+        set((s) => {
+          const next = { ...s.firedNotifications };
+          for (const k of keys) next[k] = true;
+          return { firedNotifications: next };
+        }),
+
+      markContestOpened: (contestId) =>
+        set((s) => ({
+          openedContests: { ...s.openedContests, [contestId]: true },
         })),
 
       triggerRefresh: async (options) => {
@@ -152,11 +175,13 @@ export const useAppStore = create<AppState>()(
     {
       name: "cp-companion-v3",
       partialize: (state) => ({
-        settings:   state.settings,
-        leetcode:   state.leetcode,
-        codechef:   state.codechef,
-        codeforces: state.codeforces,
-        contests:   state.contests,
+        settings:           state.settings,
+        leetcode:           state.leetcode,
+        codechef:           state.codechef,
+        codeforces:         state.codeforces,
+        contests:           state.contests,
+        firedNotifications: state.firedNotifications,
+        openedContests:     state.openedContests,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;

@@ -111,11 +111,16 @@ export interface AppSettings {
   // Refresh
   refreshInterval:    RefreshInterval;
 
-  // Notifications (Phase 6)
-  notifyContest24h:   boolean;
-  notifyContest1h:    boolean;
-  notifyContest15m:   boolean;
-  notifyDailyReminder:boolean;
+  // Notifications
+  notificationsEnabled: boolean;
+  notifyContest24h:     boolean;
+  notifyContest5h:      boolean;
+  notifyContest3h:      boolean;
+  notifyContest1h:      boolean;
+  notifyContest10m:     boolean;
+  notifyContest15m:     boolean;
+  notifyDailyReminder:  boolean;
+  autoOpenContest:      boolean;
 
   // Position and size (physical pixels; null = use window defaults)
   windowX: number | null;
