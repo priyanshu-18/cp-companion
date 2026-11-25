@@ -130,6 +130,25 @@ async fn start_drag<R: Runtime>(window: tauri::Window<R>) {
     let _ = window.start_dragging();
 }
 
+#[cfg(target_os = "windows")]
+fn apply_windows_mode<R: Runtime>(window: &tauri::Window<R>, desktop: bool) -> Result<(), String> {
+    let win_clone = window.clone();
+    window
+        .run_on_main_thread(move || {
+            let _ = win_clone.set_always_on_top(!desktop);
+            if let Ok(hwnd) = win_clone.hwnd() {
+                unsafe {
+                    if desktop {
+                        win32_window::pin_to_desktop(hwnd.0 as isize);
+                    } else {
+                        win32_window::set_floating(hwnd.0 as isize);
+                    }
+                }
+            }
+        })
+        .map_err(|e| e.to_string())
+}
+
 /// Apply native desktop-pinned mode (behind all app windows).
 ///
 /// # Thread safety
@@ -159,11 +178,8 @@ async fn pin_to_desktop<R: Runtime>(window: tauri::Window<R>) -> Result<(), Stri
 
     #[cfg(target_os = "windows")]
     {
-        // Win32 calls are safe from any thread; run directly.
-        window.set_always_on_top(false).map_err(|e| e.to_string())?;
-        let hwnd = window.hwnd().map_err(|e| e.to_string())?;
-        unsafe { win32_window::pin_to_desktop(hwnd.0 as isize); }
-        eprintln!("[CP Companion] pin_to_desktop: HWND_BOTTOM applied");
+        apply_windows_mode(&window, true)?;
+        eprintln!("[CP Companion] pin_to_desktop: HWND_BOTTOM applied on main thread");
     }
 
     Ok(())
@@ -192,10 +208,8 @@ async fn set_floating_mode<R: Runtime>(window: tauri::Window<R>) -> Result<(), S
 
     #[cfg(target_os = "windows")]
     {
-        let hwnd = window.hwnd().map_err(|e| e.to_string())?;
-        unsafe { win32_window::set_floating(hwnd.0 as isize); }
-        window.set_always_on_top(true).map_err(|e| e.to_string())?;
-        eprintln!("[CP Companion] set_floating_mode: HWND_TOPMOST applied");
+        apply_windows_mode(&window, false)?;
+        eprintln!("[CP Companion] set_floating_mode: HWND_TOPMOST applied on main thread");
     }
 
     Ok(())

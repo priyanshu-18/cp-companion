@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.css";
 import { useAppStore } from "./store/appStore";
 import { PLATFORM_LABELS } from "./types";
@@ -40,7 +41,32 @@ function App() {
       // 2. Apply stored window mode (floating / desktop)
       setWindowMode(settings.windowMode).catch(() => {});
     }, 150);
-    return () => clearTimeout(t);
+    // 3. Re-apply saved window mode on focus, blur, moved, and display/resize (debounced)
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const reapplyMode = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const mode = useAppStore.getState().settings.windowMode;
+        setWindowMode(mode).catch(() => {});
+      }, 150);
+    };
+
+    const win = getCurrentWindow();
+    const unlisteners = [
+      win.onFocusChanged(() => reapplyMode()),
+      win.onMoved(() => reapplyMode()),
+      win.onResized(() => reapplyMode()),
+    ];
+    window.addEventListener("focus", reapplyMode);
+    window.addEventListener("blur", reapplyMode);
+
+    return () => {
+      clearTimeout(t);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      window.removeEventListener("focus", reapplyMode);
+      window.removeEventListener("blur", reapplyMode);
+      unlisteners.forEach((p) => p.then((u) => u()).catch(() => {}));
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
