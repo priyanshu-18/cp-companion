@@ -344,6 +344,30 @@ async fn briefly_show_alarm_window<R: Runtime>(
 }
 
 #[tauri::command]
+fn open_contest_url<R: Runtime>(app: tauri::AppHandle<R>, url: String) -> Result<(), String> {
+    let parsed = reqwest::Url::parse(&url).map_err(|_| "Invalid contest URL".to_string())?;
+    if parsed.scheme() != "https" {
+        return Err("Only https URLs are allowed".to_string());
+    }
+    let host = parsed.host_str().unwrap_or("");
+    let allowed = matches!(
+        host,
+        "leetcode.com"
+            | "www.leetcode.com"
+            | "codechef.com"
+            | "www.codechef.com"
+            | "codeforces.com"
+            | "www.codeforces.com"
+    );
+    if !allowed {
+        return Err("Contest host not in allowlist".to_string());
+    }
+    app.opener()
+        .open_url(parsed.as_str(), None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn open_support_link<R: Runtime>(app: tauri::AppHandle<R>, key: String) -> Result<(), String> {
     let url = match key.as_str() {
         "githubRepo" => "https://github.com/OWNER/REPO",
@@ -508,6 +532,7 @@ pub fn run() {
             check_update,
             install_update,
             open_support_link,
+            open_contest_url,
             send_contest_notification,
             briefly_show_alarm_window,
         ])

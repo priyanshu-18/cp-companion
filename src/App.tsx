@@ -80,7 +80,19 @@ function App() {
 
       const now = Date.now();
       for (const c of state.contests) {
-        const minsLeft = (new Date(c.startTime).getTime() - now) / 60_000;
+        const startMs = new Date(c.startTime).getTime();
+        const elapsedMs = now - startMs;
+        if (
+          (s.autoOpenContest ?? true) &&
+          elapsedMs >= 0 &&
+          elapsedMs <= 5 * 60_000 &&
+          !state.openedContests[c.id]
+        ) {
+          state.markContestOpened(c.id);
+          invoke("open_contest_url", { url: c.url }).catch(() => {});
+        }
+
+        const minsLeft = (startMs - now) / 60_000;
         if (minsLeft <= 0 || minsLeft > 1440) continue;
 
         // Nearest (smallest) threshold that we've entered
