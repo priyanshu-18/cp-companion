@@ -384,11 +384,11 @@ fn open_contest_url<R: Runtime>(app: tauri::AppHandle<R>, url: String) -> Result
 #[tauri::command]
 fn open_support_link<R: Runtime>(app: tauri::AppHandle<R>, key: String) -> Result<(), String> {
     let url = match key.as_str() {
-        "githubRepo" => "https://github.com/OWNER/REPO",
-        "githubSponsors" => "https://github.com/sponsors/OWNER",
-        "kofi" => "https://ko-fi.com/OWNER",
-        "reportBug" => "https://github.com/OWNER/REPO/issues/new",
-        "downloadLatest" => "https://github.com/OWNER/REPO/releases/latest",
+        "githubRepo" => "https://github.com/priyanshu-18/cp-companion",
+        "githubSponsors" => "https://github.com/sponsors/priyanshu-18",
+        "kofi" => "https://ko-fi.com/impropriyanshu",
+        "reportBug" => "https://github.com/priyanshu-18/cp-companion",
+        "downloadLatest" => "https://github.com/priyanshu-18/releases/latest",
         _ => return Err("URL key not in allowlist".to_string()),
     };
     app.opener()
