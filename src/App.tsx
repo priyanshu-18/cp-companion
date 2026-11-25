@@ -9,6 +9,7 @@ import type { Platform } from "./types";
 import Heatmap from "./components/Heatmap";
 import ContestCard from "./components/ContestCard";
 import Settings from "./components/Settings";
+import { computeStreak } from "./utils/streak";
 
 function App() {
   const {
@@ -216,6 +217,10 @@ function App() {
     }
   }
   const hasHeatmapData = Object.keys(mergedHeatmap).length > 0;
+  const hasConnectedPlatform = Boolean(
+    settings.leetcodeUsername || settings.codechefUsername || settings.codeforcesHandle
+  );
+  const streakSummary = computeStreak(mergedHeatmap, hasConnectedPlatform);
 
   // ── Upcoming contests ─────────────────────────────────────────────────────
   const upcoming = [...contests]
@@ -272,6 +277,23 @@ function App() {
         <div className="widget-identity">
           <div className="widget-icon">⚡</div>
           <span className="widget-name">CP Companion</span>
+          {streakSummary && (
+            <span
+              title={streakSummary.solvedToday ? "Solved today" : "Not solved yet, streak ends at midnight"}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "1px 6px", borderRadius: 999, fontSize: 10, fontWeight: 600,
+                background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+                color: "var(--t1)", marginLeft: 4,
+              }}
+            >
+              🔥 {streakSummary.currentStreak}
+              <span style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: streakSummary.solvedToday ? "#22c55e" : "#f59e0b",
+              }} />
+            </span>
+          )}
         </div>
 
         <div className="traffic-lights" onMouseDown={(e) => e.stopPropagation()}>
