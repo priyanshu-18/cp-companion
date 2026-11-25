@@ -2,6 +2,12 @@
 
 A lightweight, glassmorphic desktop widget for competitive programmers — built with **Tauri 2, React, TypeScript, and Rust**.
 
+## Download
+- **Mac**: download the `.dmg` from the [Releases page](https://github.com/priyanshu-18/cp-companion/releases), open it, and drag **CP Companion** to **Applications**. First launch: right-click the app, choose **Open**, then **Open** again (if blocked: **System Settings > Privacy & Security > Open Anyway**).
+- **Windows**: download the `.exe` or `.msi` from the [Releases page](https://github.com/priyanshu-18/cp-companion/releases) and run it. If SmartScreen appears, click **"More info"** then **"Run anyway"**.
+- Do **NOT** download "Source code (zip/tar.gz)". That is only for developers. No terminal or code is needed to use the app.
+- The app starts automatically at login and lives in the menu bar (Mac) or system tray (Windows).
+
 ![Screenshots placeholder — add widget screenshots here](docs/screenshot-placeholder.png)
 
 ## Features
