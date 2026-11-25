@@ -120,6 +120,8 @@ export interface AppSettings {
   notifyContest10m:     boolean;
   notifyContest15m:     boolean;
   notifyDailyReminder:  boolean;
+  dailyReminderTime:    string; // "HH:MM" local, default "20:00"
+  notifyLateNudge:      boolean;
   autoOpenContest:      boolean;
 
   // Position and size (physical pixels; null = use window defaults)

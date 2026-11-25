@@ -407,6 +407,51 @@ export default function Settings({ onClose }: Props) {
       </div>
 
       <div className="s-group">
+        <div className="s-group-title">Daily Streak</div>
+        <ToggleRow
+          label="Daily streak reminder"
+          sub="Alerts if nothing solved today"
+          value={settings.notifyDailyReminder}
+          onChange={(v) => save({ notifyDailyReminder: v })}
+        />
+        <div className="s-row">
+          <span className="s-row-label">Reminder time</span>
+          <input
+            type="time"
+            className="s-input"
+            style={{ width: 92, padding: "3px 6px", fontSize: 11 }}
+            value={settings.dailyReminderTime ?? "20:00"}
+            onChange={(e) => save({ dailyReminderTime: e.target.value })}
+          />
+        </div>
+        <ToggleRow
+          label="Late nudge (22:30)"
+          sub="Last call before midnight"
+          value={settings.notifyLateNudge ?? true}
+          onChange={(v) => save({ notifyLateNudge: v })}
+        />
+        {import.meta.env.DEV && (
+          <div className="s-row">
+            <span className="s-row-label">Dev test</span>
+            <button
+              className="s-verify-btn"
+              onClick={() => {
+                const d = new Date(Date.now() + 60_000);
+                const hh = String(d.getHours()).padStart(2, "0");
+                const mm = String(d.getMinutes()).padStart(2, "0");
+                save({ notifyDailyReminder: true, notificationsEnabled: true, dailyReminderTime: `${hh}:${mm}` });
+              }}
+            >
+              Test reminder (+1 min)
+            </button>
+          </div>
+        )}
+        <p className="s-hint" style={{ marginTop: 4 }}>
+          If notifications don&apos;t appear, allow CP Companion in System Settings → Notifications.
+        </p>
+      </div>
+
+      <div className="s-group">
         <div className="s-group-title">Automation</div>
         <ToggleRow label="Auto-open contest page at start" sub="Opens official contest URL once" value={settings.autoOpenContest ?? true} onChange={(v) => save({ autoOpenContest: v })} />
       </div>

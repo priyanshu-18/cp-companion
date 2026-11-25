@@ -20,6 +20,8 @@ interface AppState {
   lastAttemptAt: Record<Platform, number>;
   firedNotifications: Record<string, boolean>;
   openedContests: Record<string, boolean>;
+  lastDailyReminderDate: string | null;
+  lastLateNudgeDate: string | null;
 
   setActivePlatform: (p: Platform) => void;
   updateSettings:    (s: Partial<AppSettings>) => void;
@@ -27,6 +29,8 @@ interface AppState {
   setPlatformStats:  (platform: Platform, stats: PlatformStats) => void;
   markNotificationsFired: (keys: string[]) => void;
   markContestOpened: (contestId: string) => void;
+  markDailyReminderFired: (dateKey: string) => void;
+  markLateNudgeFired: (dateKey: string) => void;
   triggerRefresh:    (options?: { bypassCooldown?: boolean }) => Promise<void>;
   setStatsLoading:   (platform: Platform, loading: boolean) => void;
   setStatsError:     (platform: Platform, error: string | null) => void;
@@ -51,6 +55,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   notifyContest10m:     true,
   notifyContest15m:     true,
   notifyDailyReminder:  false,
+  dailyReminderTime:    "20:00",
+  notifyLateNudge:      true,
   autoOpenContest:      true,
   windowX:             null,
   windowY:             null,
@@ -69,6 +75,8 @@ export const useAppStore = create<AppState>()(
       lastAttemptAt: { leetcode: 0, codechef: 0, codeforces: 0 },
       firedNotifications: {},
       openedContests: {},
+      lastDailyReminderDate: null,
+      lastLateNudgeDate: null,
 
       setActivePlatform: (platform) =>
         set((s) => ({ settings: { ...s.settings, activePlatform: platform } })),
@@ -106,6 +114,12 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           openedContests: { ...s.openedContests, [contestId]: true },
         })),
+
+      markDailyReminderFired: (dateKey) =>
+        set({ lastDailyReminderDate: dateKey }),
+
+      markLateNudgeFired: (dateKey) =>
+        set({ lastLateNudgeDate: dateKey }),
 
       triggerRefresh: async (options) => {
         const bypass = options?.bypassCooldown ?? false;
@@ -175,13 +189,15 @@ export const useAppStore = create<AppState>()(
     {
       name: "cp-companion-v3",
       partialize: (state) => ({
-        settings:           state.settings,
-        leetcode:           state.leetcode,
-        codechef:           state.codechef,
-        codeforces:         state.codeforces,
-        contests:           state.contests,
-        firedNotifications: state.firedNotifications,
-        openedContests:     state.openedContests,
+        settings:              state.settings,
+        leetcode:              state.leetcode,
+        codechef:              state.codechef,
+        codeforces:            state.codeforces,
+        contests:              state.contests,
+        firedNotifications:    state.firedNotifications,
+        openedContests:        state.openedContests,
+        lastDailyReminderDate: state.lastDailyReminderDate,
+        lastLateNudgeDate:     state.lastLateNudgeDate,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;

@@ -9,7 +9,7 @@ import type { Platform } from "./types";
 import Heatmap from "./components/Heatmap";
 import ContestCard from "./components/ContestCard";
 import Settings from "./components/Settings";
-import { computeStreak } from "./utils/streak";
+import { computeStreak, toLocalDateKey } from "./utils/streak";
 
 function App() {
   const {
@@ -152,8 +152,78 @@ function App() {
       }
     };
 
-    checkContests();
-    const id = setInterval(checkContests, 30_000);
+    const checkDailyReminder = async () => {
+      const state = useAppStore.getState();
+      const s = state.settings;
+      if (!(s.notificationsEnabled ?? true) || !s.notifyDailyReminder) return;
+      const connected = Boolean(
+        s.leetcodeUsername || s.codechefUsername || s.codeforcesHandle
+      );
+      if (!connected) return;
+
+      const now = new Date();
+      const todayKey = toLocalDateKey(now);
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      const cutoffMins = 23 * 60 + 30; // 23:30
+      if (nowMins > cutoffMins) return;
+
+      const [hh, mm] = (s.dailyReminderTime || "20:00").split(":").map(Number);
+      const remMins = (Number.isFinite(hh) ? hh : 20) * 60 + (Number.isFinite(mm) ? mm : 0);
+      const lateMins = 22 * 60 + 30; // 22:30
+
+      const shouldPrimary = nowMins >= remMins && state.lastDailyReminderDate !== todayKey;
+      const shouldLate = (s.notifyLateNudge ?? true) && nowMins >= lateMins && state.lastLateNudgeDate !== todayKey;
+      if (!shouldPrimary && !shouldLate) return;
+
+      if (shouldPrimary) state.markDailyReminderFired(todayKey);
+      if (shouldLate) state.markLateNudgeFired(todayKey);
+
+      const getMerged = (st: typeof state) => {
+        const m: Record<string, number> = {};
+        for (const map of [st.leetcode.heatmapData, st.codechef.heatmapData, st.codeforces.heatmapData]) {
+          for (const [d, cnt] of Object.entries(map)) m[d] = (m[d] ?? 0) + cnt;
+        }
+        return computeStreak(m, true, now);
+      };
+
+      const initial = getMerged(state);
+      if (initial?.solvedToday) return;
+
+      // Refresh connected platforms first (max 15s), then recompute
+      await Promise.race([
+        state.triggerRefresh({ bypassCooldown: true }).catch(() => {}),
+        new Promise<void>((r) => setTimeout(r, 15_000)),
+      ]);
+
+      const after = getMerged(useAppStore.getState());
+      if (after?.solvedToday) return;
+
+      const streak = after?.currentStreak ?? 0;
+      if (shouldLate) {
+        invoke("send_contest_notification", {
+          title: "⏰ Last call: streak ends at midnight",
+          body: streak > 0
+            ? `Your ${streak}-day streak is at risk. Solve one problem today.`
+            : "No problem solved today yet. Start a new streak.",
+          withSound: true,
+        }).catch(() => {});
+      } else if (shouldPrimary) {
+        invoke("send_contest_notification", {
+          title: "Daily Streak Reminder",
+          body: streak > 0
+            ? `Your ${streak}-day streak is at risk. Solve one problem today.`
+            : "No problem solved today yet. Start a new streak.",
+          withSound: false,
+        }).catch(() => {});
+      }
+    };
+
+    const tick = () => {
+      checkContests();
+      void checkDailyReminder();
+    };
+    tick();
+    const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
   }, []);
 
