@@ -9,7 +9,7 @@ One small widget for your LeetCode, CodeChef and Codeforces stats, activity heat
 ![Release](https://img.shields.io/github/v/release/priyanshu-18/cp-companion)
 
 ![CP Companion screenshot](docs/screenshot1.png)
-![CP Companion screenshot](docs/screenshot2.png)
+
 
 
 ## Why
