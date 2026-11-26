@@ -2,8 +2,10 @@
 name = "cp-companion"
 version = "0.1.1"
 license = "GPL-3.0-only"
-description = "A Tauri App"
-authors = ["you"]
+description = "A lightweight desktop widget for competitive programmers"
+authors = ["Priyanshu Pandey"]
+repository = "https://github.com/priyanshu-18/cp-companion"
+homepage = "https://github.com/priyanshu-18/cp-companion"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

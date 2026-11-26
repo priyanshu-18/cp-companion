@@ -388,7 +388,7 @@ fn open_support_link<R: Runtime>(app: tauri::AppHandle<R>, key: String) -> Resul
         "githubSponsors" => "https://github.com/sponsors/priyanshu-18",
         "kofi" => "https://ko-fi.com/impropriyanshu",
         "reportBug" => "https://github.com/priyanshu-18/cp-companion",
-        "downloadLatest" => "https://github.com/priyanshu-18/releases/latest",
+        "downloadLatest" => "https://github.com/priyanshu-18/cp-companion/releases/latest",
         _ => return Err("URL key not in allowlist".to_string()),
     };
     app.opener()

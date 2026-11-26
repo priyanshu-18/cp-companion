@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.1",
   "license": "GPL-3.0-only",
+  "author": "Priyanshu Pandey",
+  "homepage": "https://github.com/priyanshu-18/cp-companion",
+  "repository": "https://github.com/priyanshu-18/cp-companion",
   "type": "module",
   "scripts": {
     "dev": "vite",
