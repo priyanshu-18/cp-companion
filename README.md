@@ -80,12 +80,23 @@ npm run tauri build    # build an installer
 
 Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Good first contributions: fixing the CodeChef parser when the site changes, new platforms (AtCoder, HackerRank), and Windows testing.
 
+
+
+
 ## Support
 
 If CP Companion helps your practice:
 
 - Star the repo on GitHub
 - [Support on Ko-fi](https://ko-fi.com/impropriyanshu)
+
+
+
+##  If CP Companion helps your practice, please give it a star on GitHub. It helps other coders find it!
+
+
+
+
 
 ## License
 
