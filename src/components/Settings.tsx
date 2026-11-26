@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
 import { useAppStore } from "../store/appStore";
 import type { Platform, WindowMode, Theme, RefreshInterval } from "../types";
 import { fetchLeetCodeStats } from "../services/leetcode";
@@ -77,11 +78,15 @@ export default function Settings({ onClose }: Props) {
   const [section, setSection] = useState<Section>("accounts");
   const [saved, setSaved] = useState(false);
   const [autostart, setAutostart] = useState(true);
+  const [appVersion, setAppVersion] = useState("0.1.1");
   const [updateMsg, setUpdateMsg] = useState<string | null>(null);
+  const [foundUpdateVer, setFoundUpdateVer] = useState<string | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
 
   useEffect(() => {
     invoke<boolean>("get_autostart").then(setAutostart).catch(() => {});
+    getVersion().then(setAppVersion).catch(() => {});
   }, []);
 
   // ── Per-platform account verification state ───────────────────────────────
@@ -464,7 +469,7 @@ export default function Settings({ onClose }: Props) {
         <div className="s-group-title">About</div>
         <div className="s-row">
           <span className="s-row-label">CP Companion</span>
-          <span className="s-row-sub">v0.1.0</span>
+          <span className="s-row-sub">v{appVersion}</span>
         </div>
         <div className="s-row">
           <span className="s-row-label">Build</span>
@@ -474,19 +479,58 @@ export default function Settings({ onClose }: Props) {
           <span className="s-row-label">Updates</span>
           <button
             className="s-verify-btn"
-            disabled={checkingUpdate}
-            onClick={() => {
+            disabled={checkingUpdate || installingUpdate}
+            onClick={async () => {
               setCheckingUpdate(true);
               setUpdateMsg(null);
-              invoke<string | null>("check_update")
-                .then((v) => setUpdateMsg(v ? `Update v${v} available` : "You're up to date"))
-                .catch(() => setUpdateMsg("Could not check for updates"))
-                .finally(() => setCheckingUpdate(false));
+              setFoundUpdateVer(null);
+              try {
+                const v = await invoke<string | null>("check_update");
+                if (v) {
+                  setFoundUpdateVer(v);
+                  setUpdateMsg(`Update v${v} available`);
+                } else {
+                  setUpdateMsg(`You're up to date (v${appVersion})`);
+                }
+              } catch (err: unknown) {
+                const raw = err instanceof Error ? err.message : String(err);
+                const lower = raw.toLowerCase();
+                if (lower.includes("404") || lower.includes("dns") || lower.includes("connect") || lower.includes("network")) {
+                  setUpdateMsg(`Couldn't reach GitHub (${raw})`);
+                } else if (lower.includes("signature") || lower.includes("pubkey") || lower.includes("base64")) {
+                  setUpdateMsg(`Signature check failed (${raw})`);
+                } else {
+                  setUpdateMsg(raw || "Update check failed");
+                }
+              } finally {
+                setCheckingUpdate(false);
+              }
             }}
           >
             {checkingUpdate ? "Checking…" : "Check for updates"}
           </button>
         </div>
+        {foundUpdateVer && (
+          <div className="s-row" style={{ marginTop: 4 }}>
+            <span className="s-row-sub">Ready to install v{foundUpdateVer}</span>
+            <button
+              className="s-verify-btn"
+              disabled={installingUpdate}
+              onClick={async () => {
+                setInstallingUpdate(true);
+                setUpdateMsg("Downloading and installing…");
+                try {
+                  await invoke("install_update");
+                } catch (err: unknown) {
+                  setInstallingUpdate(false);
+                  setUpdateMsg(err instanceof Error ? err.message : String(err));
+                }
+              }}
+            >
+              {installingUpdate ? "Downloading…" : "Install and restart"}
+            </button>
+          </div>
+        )}
         {updateMsg && <p className="s-hint" style={{ marginTop: 4 }}>{updateMsg}</p>}
       </div>
 
